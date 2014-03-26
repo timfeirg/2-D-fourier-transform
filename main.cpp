@@ -34,19 +34,38 @@ int main(int argc, const char * argv[])
     void visualDFT( Mat& dft_result, Mat& dst );
     void DFT( Mat& src, Mat& dst );
     void inverseDFT( Mat& dft_result, Mat& dst );
+    Mat createGaussianFilter( Size size_of_filter, double sigma );
     
     help(argv[0]);
     
     // Load user specified image, if none, use lena as default target
     Mat src = (argc>=2) ? imread(argv[ argc - 1 ]) : imread(
                                                    "/Users/timfeirg/Google Drive/OpenCV/DIP3E_Original_Images_CH02/Fig0222(a)(face).tif",
-                                                   CV_LOAD_IMAGE_GRAYSCALE),
-    dst;
+                                                   CV_LOAD_IMAGE_GRAYSCALE);
+    Mat dst;
+    DFT(src, dst);
+    Mat gaussian_filter = createGaussianFilter(dst.size(), 0);
+
+    inverseDFT(dst, dst);
     
     imshow("target", dst);
     waitKey();
     
     return 0;
+}
+
+Mat createGaussianFilter( Size size_of_filter, double sigma ) {
+
+    Mat gaussian_filter = Mat(size_of_filter, CV_32F),
+    filter_x = getGaussianKernel(size_of_filter.width, sigma, CV_32F),
+    filter_y = getGaussianKernel(size_of_filter.height, sigma, CV_32F);
+//    normalize(filter_x, filter_x);
+//    normalize(filter_y, filter_y);
+    gaussian_filter = filter_x * filter_y.t();
+    normalize(gaussian_filter, gaussian_filter, 0, 1, CV_MINMAX);
+//    cout<<*max_element(gaussian_filter.begin<double>(), gaussian_filter.end<double>());
+    
+    return gaussian_filter;
 }
 
 void inverseDFT(Mat& dft_result, Mat& dst) {
