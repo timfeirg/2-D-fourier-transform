@@ -23,9 +23,8 @@ static void help(const char* progName) {
     <<  "Usage:"                                                                      << endl
     << progName << " [option] [optional filter specification] [image_name -- default lena.jpg] " << endl
     << "options:" << endl
-    << "\t-v" << "\tvisualized DFT spectrum"<< endl
-    << "\t-f" << "\tfilter" <<endl
-    << "filter;" <<endl
+    << "\t--visual" << "\tvisualized DFT spectrum"<< endl
+    << "\t-gaussian" << "\tuse gaussian filter"<< endl
     << "------------------------------------------"<< endl;
 }
 
@@ -34,38 +33,67 @@ int main(int argc, const char * argv[])
     void visualDFT( Mat& dft_result, Mat& dst );
     void DFT( Mat& src, Mat& dst );
     void inverseDFT( Mat& dft_result, Mat& dst );
+    Mat visualDFT( Mat& dft_result );
     Mat createGaussianFilter( Size size_of_filter, double sigma );
     
     help(argv[0]);
     
     // Load user specified image, if none, use lena as default target
-    Mat src = (argc>=2) ? imread(argv[ argc - 1 ]) : imread(
-                                                   "/Users/timfeirg/Google Drive/OpenCV/DIP3E_Original_Images_CH02/Fig0222(a)(face).tif",
-                                                   CV_LOAD_IMAGE_GRAYSCALE);
+    Mat src = (argc>=2) ? imread(argv[ argc - 1 ], CV_LOAD_IMAGE_GRAYSCALE) :
+    imread("/Users/timfeirg/Google Drive/OpenCV/DIP3E_Original_Images_CH02/Fig0222(a)(face).tif",
+           CV_LOAD_IMAGE_GRAYSCALE);
     Mat dst;
-    DFT(src, dst);
-    Mat gaussian_filter = createGaussianFilter(dst.size(), 0);
-
-    inverseDFT(dst, dst);
     
-    imshow("target", dst);
+    if (strcmp(argv[1], "--visual") == 0) {
+        
+        DFT(src, dst);
+        visualDFT(dst, dst);
+        
+    }
+    
+    else if (strcmp(argv[1], "--gaussian") == 0) {
+        
+        // computes the fourier transformation of source image
+        DFT(src, dst);
+        // before filtering
+        imshow("spectrum before filtering", visualDFT(dst));
+        // user specify sigma for creating the filter
+        double sigma;
+        cout<<"please specify sigma according to image size:"<<endl
+        <<"type 0 or any non-positive number to use default value"<<endl;
+        cin>>sigma;
+        Mat gaussian_filter = createGaussianFilter(src.size(), sigma);
+        
+        if (strcmp(argv[2], "-h") == 0 ) {
+            gaussian_filter = 1.0 - gaussian_filter;
+        }
+        
+        // multiply the frequency spectrum with gaussian filter, pixel wise, sort of
+        mulSpectrums(dst, gaussian_filter, dst, DFT_ROWS);
+        imshow("spectrum after filtering", visualDFT(dst));
+        inverseDFT(dst, dst);
+    }
+    
+    imshow("output", dst);
     waitKey();
-    
     return 0;
 }
 
 Mat createGaussianFilter( Size size_of_filter, double sigma ) {
-
+    
     Mat gaussian_filter = Mat(size_of_filter, CV_32F),
-    filter_x = getGaussianKernel(size_of_filter.width, sigma, CV_32F),
-    filter_y = getGaussianKernel(size_of_filter.height, sigma, CV_32F);
-//    normalize(filter_x, filter_x);
-//    normalize(filter_y, filter_y);
+    filter_x = getGaussianKernel(size_of_filter.height, sigma, CV_32F),
+    filter_y = getGaussianKernel(size_of_filter.width, sigma, CV_32F);
+    // this will create filter as Mat object of which size is x*y
     gaussian_filter = filter_x * filter_y.t();
     normalize(gaussian_filter, gaussian_filter, 0, 1, CV_MINMAX);
-//    cout<<*max_element(gaussian_filter.begin<double>(), gaussian_filter.end<double>());
     
+    Mat to_merge[] = {gaussian_filter, gaussian_filter};
+    merge(to_merge, 2, gaussian_filter);
+    // the filter is used to process spetrums before quadrant shift, so:
+    quadrantShift(gaussian_filter, gaussian_filter);
     return gaussian_filter;
+    
 }
 
 void inverseDFT(Mat& dft_result, Mat& dst) {
@@ -110,12 +138,30 @@ void visualDFT(  Mat& dft_result, Mat& dst ) {
     
 }
 
+Mat visualDFT(  Mat& dft_result ) {
+    Mat dst;
+    // create a plane containing 2 mat layer to form a 2-channel mat object
+    Mat planes[2];
+    // in order to calculate the magnitude, we'll have to split the image by channel in order to obtain each component
+    split(dft_result, planes);
+    magnitude(planes[0], planes[1], dst);
+    
+    // switch to logarithmic scale
+    dst += Scalar::all(1);
+    log(dst, dst);
+    
+    normalize(dst, dst,0,1,CV_MINMAX);
+    //    cout<<dst<<"dst end";
+    quadrantShift(dst, dst);
+    return dst;
+}
+
 void quadrantShift( Mat& src, Mat& dst) {
     
     dst = src;
     src = src(Rect(0, 0, src.cols & -2, src.rows & -2));
-    int cx = src.cols/2;
-    int cy = src.rows/2;
+    uint cx = src.cols/2;
+    uint cy = src.rows/2;
     
     Rect q0 = Rect(0, 0, cx, cy);   // Top-Left - Create a ROI per quadrant
     Rect q1 = Rect(cx, 0, cx, cy);  // Top-Right
