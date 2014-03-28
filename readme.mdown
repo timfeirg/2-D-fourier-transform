@@ -13,12 +13,16 @@
 
 ### 搭建编译环境
 
-需要用到的头文件如下，将以下头文件添加进`main.cpp`以后，还需要将相应的动态链接库加入项目中才能保证程序正常编译：
+需要用到的头文件如下，将以下头文件添加进`main.cpp`:
 
-`#include <iostream>`
-`#include <opencv2/core/core.hpp>`
-`#include <opencv2/imgproc/imgproc.hpp>`
-`#include <opencv2/highgui/highgui.hpp>`
+~~~c++
+#include <iostream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/highgui/highgui.hpp>
+~~~
+
+此外，还需要将相应的与头文件相对应的动态链接库加入项目中才能保证程序正常编译，如果你使用Qt Creator，在项目设置中还需要把头文件目录加入`.pro`文件。
 
 ### 编程
 
