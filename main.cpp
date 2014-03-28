@@ -33,6 +33,7 @@ int main(int argc, const char * argv[])
     void visualDFT( Mat& dft_result, Mat& dst );
     void DFT( Mat& src, Mat& dst );
     void inverseDFT( Mat& dft_result, Mat& dst );
+    void onGaussianTrackbar( int, void*);
     Mat visualDFT( Mat& dft_result );
     Mat createGaussianFilter( Size size_of_filter, double sigma );
     
@@ -52,16 +53,16 @@ int main(int argc, const char * argv[])
     }
     
     else if (strcmp(argv[1], "--gaussian") == 0) {
-        
+        Mat dft_container;
         // computes the fourier transformation of source image
-        DFT(src, dst);
+        DFT(src, dft_container);
         // before filtering
-        imshow("spectrum before filtering", visualDFT(dst));
+        imshow("spectrum before filtering", visualDFT(dft_container));
         // user specify sigma for creating the filter
         double sigma;
-        cout<<"please specify sigma according to image size:"<<endl
-        <<"type 0 or any non-positive number to use default value"<<endl;
+        cout<<"specify sigma:"<<endl;
         cin>>sigma;
+
         Mat gaussian_filter = createGaussianFilter(src.size(), sigma);
         
         if (strcmp(argv[2], "-h") == 0 ) {
@@ -69,14 +70,18 @@ int main(int argc, const char * argv[])
         }
         
         // multiply the frequency spectrum with gaussian filter, pixel wise, sort of
-        mulSpectrums(dst, gaussian_filter, dst, DFT_ROWS);
+        mulSpectrums(dft_container, gaussian_filter, dst, DFT_ROWS);
         imshow("spectrum after filtering", visualDFT(dst));
         inverseDFT(dst, dst);
     }
-    
+    imshow("original image", src);
     imshow("output", dst);
     waitKey();
     return 0;
+}
+
+void onGaussianTrackbar( int, void* ) {
+    
 }
 
 Mat createGaussianFilter( Size size_of_filter, double sigma ) {

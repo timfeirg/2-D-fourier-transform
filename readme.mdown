@@ -39,3 +39,13 @@
 ### 滤波
 
 原本以为OpenCV中有封装程度更高的函数可以用来完成频域滤波，但目前学到的方案是用`mulSpectrum()`函数，对频谱图和滤波器两个`Mat`图像进行点乘，再进行反变换观察滤波效果，在源程序中的高斯高通/低通滤波部分注释的相当详尽，请直接阅读[源程序](https://github.com/kkcocogogo/2-D-fourier-transform/blob/master/main.cpp)。
+
+### 高斯低通滤波器
+
+在命令行窗口中运行：
+
+`./DFT -`
+在指定使用高斯滤波器的时候，程序会要求指定sigma，OpenCV中`getGaussianKernel()`函数中对sigma的默认计算方法与实践不符，目前还没有找到恰当的计算sigma的方法，输入0或者任何负数相当于令程序用默认的sigma计算方法。
+高斯低通滤波效果如下：
+
+[高斯低通滤波效果](gaussianFilterResult.png)
