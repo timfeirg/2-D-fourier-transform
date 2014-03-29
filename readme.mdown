@@ -45,6 +45,7 @@
 在命令行窗口中运行：
 
 `./DFT -gaussian noise.png`
+
 在指定使用高斯滤波器的时候，程序会要求指定sigma，OpenCV中`getGaussianKernel()`函数中对sigma的默认计算方法与实践不符，目前还没有找到恰当的计算sigma的方法，输入0或者任何负数相当于令程序用默认的sigma计算方法。
 高斯低通滤波效果如下：
 
