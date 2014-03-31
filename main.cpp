@@ -35,7 +35,7 @@ int main(int argc, const char * argv[])
     void DFT( Mat& src, Mat& dst );
     void inverseDFT( Mat& dft_result, Mat& dst );
     Mat visualDFT( Mat& dft_result );
-    Mat createGaussianFilter( Size size_of_filter, double sigma );
+    Mat createGaussianFilter( Size size_of_filter, double sigma, bool highpass_flag);
     
     help(argv[0]);
     
@@ -65,32 +65,40 @@ int main(int argc, const char * argv[])
         cout<<"specify sigma:"<<endl;
         cin>>sigma;
         
-        Mat gaussian_filter = createGaussianFilter(dft_container.size(), sigma);
-        
+        Mat gaussian_filter;
         if (strcmp(argv[2], "--highpass") == 0 ) {
-            gaussian_filter = 1.0 - gaussian_filter;
+            gaussian_filter = createGaussianFilter(dft_container.size(), sigma, true);
         }
-        
+        else {
+            gaussian_filter = createGaussianFilter(dft_container.size(), sigma, false);
+        }
+
         // multiply the frequency spectrum with gaussian filter, pixel wise, sort of
         mulSpectrums(dft_container, gaussian_filter, dst, DFT_ROWS);
         imshow("spectrum after filtering", visualDFT(dst));
         inverseDFT(dst, dst);
     }
-
+    
     imshow("original image", src);
     imshow("output", dst);
     waitKey();
     return 0;
 }
 
-Mat createGaussianFilter( Size size_of_filter, double sigma ) {
-
+Mat createGaussianFilter( Size size_of_filter, double sigma, bool highpass_flag ) {
+    
     Mat gaussian_filter = Mat(size_of_filter, CV_32F),
     filter_x = getGaussianKernel(size_of_filter.height, sigma, CV_32F),
     filter_y = getGaussianKernel(size_of_filter.width, sigma, CV_32F);
+    
     // this will create filter as Mat object of which size is x*y
     gaussian_filter = filter_x * filter_y.t();
     normalize(gaussian_filter, gaussian_filter, 0, 1, CV_MINMAX);
+    
+    if (highpass_flag == true) {
+        gaussian_filter = 1 - gaussian_filter;
+    }
+    
     Mat to_merge[] = {gaussian_filter, gaussian_filter};
     merge(to_merge, 2, gaussian_filter);
     // the filter is used to process spetrums before quadrant shift, so:
