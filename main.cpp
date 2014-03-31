@@ -15,6 +15,7 @@ using namespace cv;
 using namespace std;
 
 void quadrantShift(Mat& src, Mat& dst);
+//Mat quadrantShift(Mat& src);
 
 static void help(const char* progName) {
     
@@ -36,6 +37,7 @@ int main(int argc, const char * argv[])
     void inverseDFT( Mat& dft_result, Mat& dst );
     Mat visualDFT( Mat& dft_result );
     Mat createGaussianFilter( Size size_of_filter, double sigma, bool highpass_flag);
+    Mat createIdealFilter( Size size_of_filter, float threthold, bool highpass_flag );
     
     help(argv[0]);
     
@@ -43,46 +45,82 @@ int main(int argc, const char * argv[])
     Mat src = (argc>=2) ? imread(argv[ argc - 1 ], CV_LOAD_IMAGE_GRAYSCALE) :
     imread("/Users/timfeirg/Google Drive/OpenCV/DIP3E_Original_Images_CH02/Fig0222(a)(face).tif",
            CV_LOAD_IMAGE_GRAYSCALE);
-    Mat dst;
+    Mat dft_container,result;
+    
+    DFT(src, dft_container);
     
     // compute the DFT of image and visualize
-    if (strcmp(argv[1], "--visual") == 0) {
-        
-        DFT(src, dst);
-        visualDFT(dst, dst);
-        
-    }
+    imshow("visualized frequency spectrum (before filtering)", visualDFT(dft_container));
+    
+    if (strcmp(argv[1], "--visual") == 0) return 1;
     
     // apply gaussian filter with user-specified sigma to the image, visualize & show the frequency spectrum
     else if (strcmp(argv[1], "--gaussian") == 0) {
-        Mat dft_container;
-        // computes the fourier transformation of source image
-        DFT(src, dft_container);
-        // before filtering
-        imshow("spectrum before filtering", visualDFT(dft_container));
-        // user specify sigma for creating the filter
-        double sigma;
-        cout<<"specify sigma:"<<endl;
-        cin>>sigma;
         
         Mat gaussian_filter;
-        if (strcmp(argv[2], "--highpass") == 0 ) {
-            gaussian_filter = createGaussianFilter(dft_container.size(), sigma, true);
-        }
-        else {
-            gaussian_filter = createGaussianFilter(dft_container.size(), sigma, false);
-        }
+        double sigma;
+        // user specify sigma for creating the filter
+        cout<<"specify sigma, any non-positive value signals the program to use default sigma:"<<endl;
+        cin>>sigma;
+        
 
+        gaussian_filter = (strcmp(argv[2], "--highpass") == 0 ) ?
+        createGaussianFilter(dft_container.size(), sigma, true) :
+        createGaussianFilter(dft_container.size(), sigma, false);
+        
         // multiply the frequency spectrum with gaussian filter, pixel wise, sort of
-        mulSpectrums(dft_container, gaussian_filter, dst, DFT_ROWS);
-        imshow("spectrum after filtering", visualDFT(dst));
-        inverseDFT(dst, dst);
+        mulSpectrums(dft_container, gaussian_filter, dft_container, DFT_ROWS);
+        inverseDFT(dft_container, result);
+        
+        // visualize things
+        imshow("spectrum after ideal filtering", visualDFT(dft_container));
+        imshow("image after ideal filtering", result);
+        waitKey();
+        
     }
     
-    imshow("original image", src);
-    imshow("output", dst);
-    waitKey();
+    // implement ideal high/low pass filtering
+    else if (strcmp(argv[1], "--ideal") == 0) {
+        
+        Mat filter = (strcmp(argv[2], "--highpass") == 0) ?
+        createIdealFilter(dft_container.size(), 0, 1) : createIdealFilter(dft_container.size(), 0, 0);
+        
+        cout<<dft_container.type()<<endl;
+        mulSpectrums(dft_container, filter, dft_container, DFT_ROWS);
+        
+        // perform inverse dft to observe the result of such filtering
+        inverseDFT(dft_container, result);
+        
+        // visualize things
+        imshow("spectrum after filtering", visualDFT(dft_container));
+        imshow("after filtering", result);
+        waitKey();
+        
+    }
+    
     return 0;
+}
+
+Mat createIdealFilter( Size size_of_filter, float threthold, bool highpass_flag ) {
+    
+    Mat filter(size_of_filter, CV_32F, Scalar::all(0));
+    
+    Point ideal_center = Point_<uint>(size_of_filter.width / 2, size_of_filter.height / 2);
+    int idean_radius = ( size_of_filter.height >= size_of_filter.width ) ?
+    size_of_filter.height / 4 : size_of_filter.width / 4;
+    
+    circle(filter, ideal_center, idean_radius, Scalar::all(1), -1);
+
+    Mat to_merge[] = { filter, filter };
+    merge(to_merge, 2, filter);
+    
+    // if user specified ideal highpass filter, then we'd invert the filter
+    if (highpass_flag) {
+        filter = 255 - filter;
+    }
+    
+    quadrantShift(filter, filter);
+    return filter;
 }
 
 Mat createGaussianFilter( Size size_of_filter, double sigma, bool highpass_flag ) {
@@ -150,6 +188,7 @@ void visualDFT(  Mat& dft_result, Mat& dst ) {
 }
 
 Mat visualDFT(  Mat& dft_result ) {
+    
     Mat dst;
     // create a plane containing 2 mat layer to form a 2-channel mat object
     Mat planes[2];
@@ -165,6 +204,7 @@ Mat visualDFT(  Mat& dft_result ) {
     //    cout<<dst<<"dst end";
     quadrantShift(dst, dst);
     return dst;
+    
 }
 
 void quadrantShift( Mat& src, Mat& dst) {
