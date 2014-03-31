@@ -7,9 +7,9 @@
 //
 
 #include <iostream>
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc.hpp>
-#include <opencv2/highgui/highgui.hpp>
+#include "opencv2/core/core.hpp"
+#include "opencv2/imgproc/imgproc.hpp"
+#include "opencv2/highgui/highgui.hpp"
 
 using namespace cv;
 using namespace std;
@@ -26,6 +26,7 @@ static void help(const char* progName) {
     << "\t--visual" << "\tvisualized DFT spectrum"<< endl
     << "\t-gaussian" << "\tuse gaussian filter"<< endl
     << "------------------------------------------"<< endl;
+    
 }
 
 int main(int argc, const char * argv[])
@@ -33,7 +34,6 @@ int main(int argc, const char * argv[])
     void visualDFT( Mat& dft_result, Mat& dst );
     void DFT( Mat& src, Mat& dst );
     void inverseDFT( Mat& dft_result, Mat& dst );
-    void onGaussianTrackbar( int, void*);
     Mat visualDFT( Mat& dft_result );
     Mat createGaussianFilter( Size size_of_filter, double sigma );
     
@@ -45,6 +45,7 @@ int main(int argc, const char * argv[])
            CV_LOAD_IMAGE_GRAYSCALE);
     Mat dst;
     
+    // compute the DFT of image and visualize
     if (strcmp(argv[1], "--visual") == 0) {
         
         DFT(src, dst);
@@ -52,6 +53,7 @@ int main(int argc, const char * argv[])
         
     }
     
+    // apply gaussian filter with user-specified sigma to the image, visualize & show the frequency spectrum
     else if (strcmp(argv[1], "--gaussian") == 0) {
         Mat dft_container;
         // computes the fourier transformation of source image
@@ -62,10 +64,10 @@ int main(int argc, const char * argv[])
         double sigma;
         cout<<"specify sigma:"<<endl;
         cin>>sigma;
-
-        Mat gaussian_filter = createGaussianFilter(src.size(), sigma);
         
-        if (strcmp(argv[2], "-h") == 0 ) {
+        Mat gaussian_filter = createGaussianFilter(dft_container.size(), sigma);
+        
+        if (strcmp(argv[2], "--highpass") == 0 ) {
             gaussian_filter = 1.0 - gaussian_filter;
         }
         
@@ -74,25 +76,21 @@ int main(int argc, const char * argv[])
         imshow("spectrum after filtering", visualDFT(dst));
         inverseDFT(dst, dst);
     }
+
     imshow("original image", src);
     imshow("output", dst);
     waitKey();
     return 0;
 }
 
-void onGaussianTrackbar( int, void* ) {
-    
-}
-
 Mat createGaussianFilter( Size size_of_filter, double sigma ) {
-    
+
     Mat gaussian_filter = Mat(size_of_filter, CV_32F),
     filter_x = getGaussianKernel(size_of_filter.height, sigma, CV_32F),
     filter_y = getGaussianKernel(size_of_filter.width, sigma, CV_32F);
     // this will create filter as Mat object of which size is x*y
     gaussian_filter = filter_x * filter_y.t();
     normalize(gaussian_filter, gaussian_filter, 0, 1, CV_MINMAX);
-    
     Mat to_merge[] = {gaussian_filter, gaussian_filter};
     merge(to_merge, 2, gaussian_filter);
     // the filter is used to process spetrums before quadrant shift, so:
