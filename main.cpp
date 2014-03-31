@@ -19,7 +19,8 @@ void quadrantShift(Mat& src, Mat& dst);
 
 static void help(const char* progName) {
     
-    cout << "------------------------------------------"<< endl
+    cout
+    << "------------------------------------------"<< endl
     <<  "This program demonstrated the use of DFT, and some basic frequency domain filtering. " << endl
     <<  "Usage:"                                                                      << endl
     << progName << " [option] [optional filter specification] [image_name -- default lena.jpg] " << endl
@@ -32,6 +33,7 @@ static void help(const char* progName) {
 
 int main(int argc, const char * argv[])
 {
+    
     void visualDFT( Mat& dft_result, Mat& dst );
     void DFT( Mat& src, Mat& dst );
     void inverseDFT( Mat& dft_result, Mat& dst );
@@ -133,9 +135,7 @@ Mat createGaussianFilter( Size size_of_filter, double sigma, bool highpass_flag 
     gaussian_filter = filter_x * filter_y.t();
     normalize(gaussian_filter, gaussian_filter, 0, 1, CV_MINMAX);
     
-    if (highpass_flag == true) {
-        gaussian_filter = 1 - gaussian_filter;
-    }
+    if (highpass_flag == true) gaussian_filter = 1 - gaussian_filter;
     
     Mat to_merge[] = {gaussian_filter, gaussian_filter};
     merge(to_merge, 2, gaussian_filter);
@@ -187,7 +187,7 @@ void visualDFT(  Mat& dft_result, Mat& dst ) {
     
 }
 
-Mat visualDFT(  Mat& dft_result ) {
+Mat visualDFT( Mat& dft_result ) {
     
     Mat dst;
     // create a plane containing 2 mat layer to form a 2-channel mat object
