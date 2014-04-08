@@ -209,7 +209,7 @@ Mat visualDFT( Mat& dft_result ) {
 
 void quadrantShift( Mat& src, Mat& dst) {
     
-    dst = src;
+
     src = src(Rect(0, 0, src.cols & -2, src.rows & -2));
     uint cx = src.cols/2;
     uint cy = src.rows/2;
